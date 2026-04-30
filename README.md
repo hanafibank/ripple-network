@@ -1,11 +1,12 @@
 # HanaFi Ripple Engine Prototype
 
-Small FastAPI service for working with Ripple/XRPL on testnet.
+Small FastAPI service for working with Ripple/XRPL on testnet, with a simple web UI for wallet creation, XRP transfer, and transaction lookup.
 
 ## Purpose
 
 This service provides a minimal Ripple/XRPL codebase that:
 
+- includes a browser-based frontend at `/ui`
 - creates XRPL testnet wallets
 - funds testnet wallets from faucet
 - sends XRP from one wallet to another
@@ -14,6 +15,7 @@ This service provides a minimal Ripple/XRPL codebase that:
 
 ## What This Demo Does
 
+- Provides a simple frontend at `/ui` so wallet-to-wallet transfers can be tested without Swagger.
 - Creates XRPL testnet wallets.
 - Optionally funds a testnet wallet from the XRPL faucet.
 - Sends XRP from one testnet wallet to another.
@@ -37,7 +39,8 @@ an issued stablecoin flow, but it requires issuer and trust-line handling.
 ## Setup
 
 ```bash
-cd /Users/gg/Public/hanafi-ripple-engine
+git clone https://github.com/humblebeeai-academy/hanafi-ripple-engine.git
+cd hanafi-ripple-engine
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -46,7 +49,13 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8088
 ```
 
-Open:
+Open the frontend:
+
+```text
+http://127.0.0.1:8088/ui
+```
+
+Optional API docs:
 
 ```text
 http://127.0.0.1:8088/docs
