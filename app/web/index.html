@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HanaFi Ripple Engine</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">XRPL</div>
+        <div>
+          <div class="title">HanaFi Ripple Engine</div>
+          <div class="subtitle">Wallet-to-wallet XRP transfer (Testnet)</div>
+        </div>
+      </div>
+      <div class="status" id="healthStatus">
+        <span class="dot" id="healthDot"></span>
+        <span id="healthText">Checking API...</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>1) Create Wallet</h2>
+        <p class="muted">Create an XRPL testnet wallet. You can optionally fund it via faucet.</p>
+
+        <div class="row">
+          <label class="switch">
+            <input type="checkbox" id="fundWallet" checked />
+            <span class="slider"></span>
+          </label>
+          <div>
+            <div class="label">Fund via faucet</div>
+            <div class="muted small">Recommended for the sender wallet.</div>
+          </div>
+        </div>
+
+        <button class="btn primary" id="createWalletBtn">Create Wallet</button>
+
+        <div class="out">
+          <div class="outRow">
+            <div class="outKey">Address</div>
+            <div class="outVal mono" id="walletAddress">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Seed</div>
+            <div class="outVal mono" id="walletSeed">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Public Key</div>
+            <div class="outVal mono" id="walletPubKey">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Funded</div>
+            <div class="outVal mono" id="walletFunded">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Seed Visibility</div>
+            <div class="outVal">
+              <button class="btn" id="toggleSeedBtn">Show/Hide</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2) Send XRP</h2>
+        <p class="muted">Send XRP from a funded wallet seed to a destination address.</p>
+
+        <label class="field">
+          <span>Source Seed</span>
+          <input id="sendSourceSeed" placeholder="sEd..." autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Destination Address</span>
+          <input id="sendDestAddress" placeholder="r..." autocomplete="off" />
+        </label>
+
+        <div class="twoCol">
+          <label class="field">
+            <span>Amount (XRP)</span>
+            <input id="sendAmount" value="1" />
+          </label>
+          <label class="field">
+            <span>Memo (optional)</span>
+            <input id="sendMemo" value="hanafi-demo-transfer" />
+          </label>
+        </div>
+
+        <button class="btn primary" id="sendXrpBtn">Send XRP</button>
+
+        <div class="out">
+          <div class="outRow">
+            <div class="outKey">Tx Hash</div>
+            <div class="outVal mono" id="sendTxHash">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Result</div>
+            <div class="outVal mono" id="sendResult">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Validated</div>
+            <div class="outVal mono" id="sendValidated">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Explorer</div>
+            <div class="outVal mono"><a id="sendExplorer" href="#" target="_blank" rel="noreferrer">-</a></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3) Check Transaction</h2>
+        <p class="muted">Lookup transaction status by hash.</p>
+
+        <label class="field">
+          <span>Tx Hash</span>
+          <input id="checkTxHash" placeholder="..." />
+        </label>
+
+        <button class="btn" id="checkTxBtn">Check Status</button>
+
+        <div class="out">
+          <div class="outRow">
+            <div class="outKey">Validated</div>
+            <div class="outVal mono" id="checkValidated">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Result</div>
+            <div class="outVal mono" id="checkResult">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Ledger</div>
+            <div class="outVal mono" id="checkLedger">-</div>
+          </div>
+          <div class="outRow">
+            <div class="outKey">Explorer</div>
+            <div class="outVal mono"><a id="checkExplorer" href="#" target="_blank" rel="noreferrer">-</a></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Raw Response</h2>
+        <p class="muted">Latest JSON response for copy/paste.</p>
+        <pre class="json" id="rawJson">{}</pre>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="muted">Tip: create a funded wallet for sender, unfunded for receiver, then send XRP.</span>
+    </footer>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
+

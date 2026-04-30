@@ -1,10 +1,15 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.ripple import router as ripple_router
 from app.core.config import get_settings
 
 settings = get_settings()
+WEB_DIR = Path(__file__).resolve().parent / "web"
 
 app = FastAPI(
     title=settings.app_name,
@@ -21,6 +26,17 @@ app.add_middleware(
 )
 
 app.include_router(ripple_router)
+
+if WEB_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="static")
+
+
+@app.get("/ui")
+def ui():
+    index_path = WEB_DIR / "index.html"
+    if not index_path.exists():
+        return {"error": "UI assets not found."}
+    return FileResponse(index_path)
 
 
 @app.get("/")
