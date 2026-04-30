@@ -1,6 +1,7 @@
 const els = {
   healthText: document.getElementById("healthText"),
   healthDot: document.getElementById("healthDot"),
+  toast: document.getElementById("toast"),
   fundWallet: document.getElementById("fundWallet"),
   createWalletBtn: document.getElementById("createWalletBtn"),
   walletAddress: document.getElementById("walletAddress"),
@@ -17,6 +18,7 @@ const els = {
   sendResult: document.getElementById("sendResult"),
   sendValidated: document.getElementById("sendValidated"),
   sendExplorer: document.getElementById("sendExplorer"),
+  copyTxHashBtn: document.getElementById("copyTxHashBtn"),
   checkTxHash: document.getElementById("checkTxHash"),
   checkTxBtn: document.getElementById("checkTxBtn"),
   checkValidated: document.getElementById("checkValidated"),
@@ -24,10 +26,13 @@ const els = {
   checkLedger: document.getElementById("checkLedger"),
   checkExplorer: document.getElementById("checkExplorer"),
   rawJson: document.getElementById("rawJson"),
+  copyRawBtn: document.getElementById("copyRawBtn"),
+  clearRawBtn: document.getElementById("clearRawBtn"),
 };
 
 let lastSeed = null;
 let seedVisible = false;
+let toastTimer = null;
 
 function setHealth(ok, text) {
   els.healthText.textContent = text;
@@ -38,6 +43,16 @@ function setRaw(obj) {
   els.rawJson.textContent = JSON.stringify(obj, null, 2);
 }
 
+function toast(message) {
+  if (!els.toast) return;
+  els.toast.textContent = message;
+  els.toast.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    els.toast.classList.remove("show");
+  }, 1600);
+}
+
 function maskSeed(seed) {
   if (!seed) return "-";
   if (seed.length <= 10) return "**********";
@@ -46,6 +61,35 @@ function maskSeed(seed) {
 
 function renderSeed() {
   els.walletSeed.textContent = seedVisible ? (lastSeed || "-") : maskSeed(lastSeed);
+}
+
+async function copyText(text) {
+  const value = String(text || "").trim();
+  if (!value || value === "-") {
+    toast("Nothing to copy");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    toast("Copied");
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = value;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      toast("Copied");
+    } catch {
+      toast("Copy failed");
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
 }
 
 async function apiFetch(path, options) {
@@ -71,6 +115,7 @@ async function health() {
 els.toggleSeedBtn.addEventListener("click", () => {
   seedVisible = !seedVisible;
   renderSeed();
+  toast(seedVisible ? "Seed visible" : "Seed hidden");
 });
 
 els.createWalletBtn.addEventListener("click", async () => {
@@ -97,8 +142,10 @@ els.createWalletBtn.addEventListener("click", async () => {
     }
 
     setRaw(data);
+    toast("Wallet created");
   } catch (e) {
     setRaw({ error: e.message });
+    toast(e.message);
   } finally {
     els.createWalletBtn.disabled = false;
     els.createWalletBtn.textContent = "Create Wallet";
@@ -135,8 +182,10 @@ els.sendXrpBtn.addEventListener("click", async () => {
 
     els.checkTxHash.value = data.tx_hash || "";
     setRaw(data);
+    toast("Payment sent");
   } catch (e) {
     setRaw({ error: e.message });
+    toast(e.message);
   } finally {
     els.sendXrpBtn.disabled = false;
     els.sendXrpBtn.textContent = "Send XRP";
@@ -163,13 +212,59 @@ els.checkTxBtn.addEventListener("click", async () => {
     }
 
     setRaw(data);
+    toast("Status loaded");
   } catch (e) {
     setRaw({ error: e.message });
+    toast(e.message);
   } finally {
     els.checkTxBtn.disabled = false;
     els.checkTxBtn.textContent = "Check Status";
   }
 });
 
-health();
+function setActivePage(page) {
+  document.querySelectorAll(".navItem").forEach((b) => b.classList.remove("active"));
+  document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+  const nav = document.querySelector(`.navItem[data-page="${page}"]`);
+  const section = document.querySelector(`.page[data-page="${page}"]`);
+  if (nav) nav.classList.add("active");
+  if (section) section.classList.add("active");
+  history.replaceState(null, "", `#${page}`);
+}
 
+document.querySelectorAll(".navItem").forEach((btn) => {
+  btn.addEventListener("click", () => setActivePage(btn.dataset.page));
+});
+
+function getCopyValue(targetId) {
+  if (targetId === "walletSeed") return seedVisible ? (lastSeed || "") : (lastSeed || "");
+  if (targetId === "sendExplorer") return els.sendExplorer?.textContent || "";
+  if (targetId === "checkExplorer") return els.checkExplorer?.textContent || "";
+  if (targetId === "rawJson") return els.rawJson?.textContent || "";
+  const el = document.getElementById(targetId);
+  if (el && el.tagName === "INPUT") return el.value || "";
+  return el ? el.textContent || "" : "";
+}
+
+document.addEventListener("click", (e) => {
+  const btn = e.target?.closest?.("[data-copy]");
+  if (!btn) return;
+  const targetId = btn.getAttribute("data-copy");
+  const value = getCopyValue(targetId);
+  copyText(value);
+});
+
+if (els.copyRawBtn) {
+  els.copyRawBtn.addEventListener("click", () => copyText(getCopyValue("rawJson")));
+}
+
+if (els.clearRawBtn) {
+  els.clearRawBtn.addEventListener("click", () => {
+    setRaw({});
+    toast("Cleared");
+  });
+}
+
+const initialPage = (location.hash || "#wallets").replace("#", "");
+setActivePage(initialPage);
+health();
