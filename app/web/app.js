@@ -9,6 +9,12 @@ const els = {
   walletPubKey: document.getElementById("walletPubKey"),
   walletFunded: document.getElementById("walletFunded"),
   toggleSeedBtn: document.getElementById("toggleSeedBtn"),
+  accountAddress: document.getElementById("accountAddress"),
+  loadAccountBtn: document.getElementById("loadAccountBtn"),
+  accountDetailAddress: document.getElementById("accountDetailAddress"),
+  accountBalance: document.getElementById("accountBalance"),
+  accountSequence: document.getElementById("accountSequence"),
+  accountLedger: document.getElementById("accountLedger"),
   sendSourceSeed: document.getElementById("sendSourceSeed"),
   sendDestAddress: document.getElementById("sendDestAddress"),
   sendAmount: document.getElementById("sendAmount"),
@@ -40,6 +46,7 @@ let lastSeed = null;
 let seedVisible = false;
 let toastTimer = null;
 let lastHistory = null;
+let lastAccount = null;
 
 function setHealth(ok, text) {
   els.healthText.textContent = text;
@@ -207,9 +214,11 @@ els.createWalletBtn.addEventListener("click", async () => {
     if (data.funded) {
       els.sendSourceSeed.value = data.seed || "";
       els.historyAddress.value = data.classic_address || "";
+      els.accountAddress.value = data.classic_address || "";
     } else {
       els.sendDestAddress.value = data.classic_address || "";
       els.historyAddress.value = data.classic_address || "";
+      els.accountAddress.value = data.classic_address || "";
     }
 
     setRaw(data);
@@ -220,6 +229,34 @@ els.createWalletBtn.addEventListener("click", async () => {
   } finally {
     els.createWalletBtn.disabled = false;
     els.createWalletBtn.textContent = "Create Wallet";
+  }
+});
+
+els.loadAccountBtn.addEventListener("click", async () => {
+  els.loadAccountBtn.disabled = true;
+  els.loadAccountBtn.textContent = "Loading...";
+  try {
+    const address = els.accountAddress.value.trim();
+    const data = await apiFetch(`/ripple/accounts/${encodeURIComponent(address)}`);
+
+    lastAccount = data;
+    els.accountDetailAddress.textContent = data.address || "-";
+    els.accountBalance.textContent = data.balance_xrp ? `${data.balance_xrp} XRP` : "-";
+    els.accountSequence.textContent = String(data.sequence ?? "-");
+    els.accountLedger.textContent = String(data.ledger_index ?? "-");
+    setRaw(data);
+    toast("Account loaded");
+  } catch (e) {
+    lastAccount = null;
+    els.accountDetailAddress.textContent = "-";
+    els.accountBalance.textContent = "-";
+    els.accountSequence.textContent = "-";
+    els.accountLedger.textContent = "-";
+    setRaw({ error: e.message });
+    toast(e.message);
+  } finally {
+    els.loadAccountBtn.disabled = false;
+    els.loadAccountBtn.textContent = "Load details";
   }
 });
 

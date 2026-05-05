@@ -28,6 +28,10 @@
             <span class="navTitle">Wallets</span>
             <span class="navSub">Create and fund</span>
           </button>
+          <button class="navItem" data-page="details" id="navDetails">
+            <span class="navTitle">Details</span>
+            <span class="navSub">Wallet balance</span>
+          </button>
           <button class="navItem" data-page="send" id="navSend">
             <span class="navTitle">Send</span>
             <span class="navSub">XRP transfer</span>
@@ -110,6 +114,48 @@
                 <div class="outKey">Funded</div>
                 <div class="outVal mono" id="walletFunded">-</div>
                 <div class="outTools"></div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <section class="page" data-page="details">
+          <div class="pageHeader">
+            <h1>Wallet Details</h1>
+            <div class="muted">Check a wallet balance and account state by XRPL testnet address.</div>
+          </div>
+
+          <div class="card">
+            <label class="field">
+              <span>Wallet address</span>
+              <input id="accountAddress" placeholder="r..." autocomplete="off" />
+            </label>
+
+            <div class="actions">
+              <button class="btn primary" id="loadAccountBtn">Load details</button>
+              <button class="btn" data-copy="accountAddress">Copy address</button>
+            </div>
+
+            <div class="detailGrid">
+              <div class="detailTile wide">
+                <span>Address</span>
+                <strong class="mono" id="accountDetailAddress">-</strong>
+                <div class="detailActions">
+                  <button class="btn mini" data-copy="accountDetailAddress">Copy address</button>
+                </div>
+              </div>
+              <div class="detailTile">
+                <span>Balance</span>
+                <strong class="mono" id="accountBalance">-</strong>
+              </div>
+              <div class="detailTile">
+                <span>Sequence</span>
+                <strong class="mono" id="accountSequence">-</strong>
+              </div>
+              <div class="detailTile">
+                <span>Ledger</span>
+                <strong class="mono" id="accountLedger">-</strong>
               </div>
             </div>
           </div>

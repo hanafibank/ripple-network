@@ -300,6 +300,42 @@ input:focus {
   overflow: hidden;
 }
 
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.detailTile {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 14px;
+}
+
+.detailTile.wide {
+  grid-column: 1 / -1;
+}
+
+.detailTile span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+
+.detailTile strong {
+  display: block;
+  font-size: 15px;
+  word-break: break-word;
+}
+
+.detailActions {
+  margin-top: 10px;
+}
+
 .outRow {
   display: grid;
   grid-template-columns: 140px 1fr 84px;
@@ -551,6 +587,9 @@ input:checked + .slider:before {
   }
   .outRow {
     grid-template-columns: 120px 1fr 74px;
+  }
+  .detailGrid {
+    grid-template-columns: 1fr;
   }
   .historyGrid {
     grid-template-columns: 1fr 1fr;

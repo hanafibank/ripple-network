@@ -1,6 +1,6 @@
 # HanaFi Ripple Engine Prototype
 
-Small FastAPI service for working with Ripple/XRPL on testnet, with a simple web UI for wallet creation, XRP transfer, transaction lookup, and wallet transaction history.
+Small FastAPI service for working with Ripple/XRPL on testnet, with a simple web UI for wallet creation, wallet details, XRP transfer, transaction lookup, and wallet transaction history.
 
 ## Purpose
 
@@ -8,6 +8,7 @@ This service provides a minimal Ripple/XRPL codebase that:
 
 - includes a browser-based frontend at `/ui`
 - creates XRPL testnet wallets
+- shows wallet details by address
 - funds testnet wallets from faucet
 - sends XRP from one wallet to another
 - returns transaction hash, ledger result, and explorer URL
@@ -18,6 +19,7 @@ This service provides a minimal Ripple/XRPL codebase that:
 
 - Provides a simple frontend at `/ui` so wallet-to-wallet transfers can be tested without Swagger.
 - Creates XRPL testnet wallets.
+- Shows formatted wallet details, including address, balance, sequence, and ledger index.
 - Optionally funds a testnet wallet from the XRPL faucet.
 - Sends XRP from one testnet wallet to another.
 - Returns the transaction hash, ledger result, and explorer URL.
