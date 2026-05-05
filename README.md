@@ -1,6 +1,6 @@
 # HanaFi Ripple Engine Prototype
 
-Small FastAPI service for working with Ripple/XRPL on testnet, with a simple web UI for wallet creation, XRP transfer, and transaction lookup.
+Small FastAPI service for working with Ripple/XRPL on testnet, with a simple web UI for wallet creation, XRP transfer, transaction lookup, and wallet transaction history.
 
 ## Purpose
 
@@ -12,6 +12,7 @@ This service provides a minimal Ripple/XRPL codebase that:
 - sends XRP from one wallet to another
 - returns transaction hash, ledger result, and explorer URL
 - checks transaction status by hash
+- shows recent wallet transaction history with readable details
 
 ## What This Demo Does
 
@@ -21,6 +22,7 @@ This service provides a minimal Ripple/XRPL codebase that:
 - Sends XRP from one testnet wallet to another.
 - Returns the transaction hash, ledger result, and explorer URL.
 - Checks transaction status by hash.
+- Loads recent wallet history, including direction, counterparty, amount, fee, result, ledger, date, memo, and explorer links.
 
 ## What This Demo Does Not Do
 
@@ -96,6 +98,12 @@ Check transaction status:
 
 ```bash
 curl http://127.0.0.1:8088/ripple/payments/{tx_hash}
+```
+
+Load wallet transaction history:
+
+```bash
+curl "http://127.0.0.1:8088/ripple/accounts/{address}/transactions?limit=20"
 ```
 
 ## Production Notes

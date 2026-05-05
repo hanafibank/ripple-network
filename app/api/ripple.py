@@ -7,6 +7,7 @@ from app.schemas.ripple import (
     SendXrpResponse,
     TransactionStatusResponse,
     WalletResponse,
+    WalletTransactionHistoryResponse,
 )
 from app.services.xrpl_service import XrplService, get_xrpl_service
 
@@ -35,6 +36,22 @@ def get_account_info(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@router.get(
+    "/accounts/{address}/transactions",
+    response_model=WalletTransactionHistoryResponse,
+)
+def get_wallet_transactions(
+    address: str,
+    limit: int = 20,
+    service: XrplService = Depends(get_xrpl_service),
+) -> WalletTransactionHistoryResponse:
+    try:
+        safe_limit = min(max(limit, 1), 100)
+        return service.get_wallet_history(address, limit=safe_limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @router.post("/payments/xrp", response_model=SendXrpResponse)
 def send_xrp(
     payload: SendXrpRequest,
@@ -55,4 +72,3 @@ def get_payment_status(
         return service.get_transaction_status(tx_hash)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-

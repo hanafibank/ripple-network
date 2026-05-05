@@ -25,6 +25,12 @@ const els = {
   checkResult: document.getElementById("checkResult"),
   checkLedger: document.getElementById("checkLedger"),
   checkExplorer: document.getElementById("checkExplorer"),
+  historyAddress: document.getElementById("historyAddress"),
+  historyLimit: document.getElementById("historyLimit"),
+  loadHistoryBtn: document.getElementById("loadHistoryBtn"),
+  copyHistoryJsonBtn: document.getElementById("copyHistoryJsonBtn"),
+  historySummary: document.getElementById("historySummary"),
+  historyList: document.getElementById("historyList"),
   rawJson: document.getElementById("rawJson"),
   copyRawBtn: document.getElementById("copyRawBtn"),
   clearRawBtn: document.getElementById("clearRawBtn"),
@@ -33,6 +39,7 @@ const els = {
 let lastSeed = null;
 let seedVisible = false;
 let toastTimer = null;
+let lastHistory = null;
 
 function setHealth(ok, text) {
   els.healthText.textContent = text;
@@ -61,6 +68,68 @@ function maskSeed(seed) {
 
 function renderSeed() {
   els.walletSeed.textContent = seedVisible ? (lastSeed || "-") : maskSeed(lastSeed);
+}
+
+function shortHash(value) {
+  if (!value) return "-";
+  if (value.length <= 18) return value;
+  return `${value.slice(0, 10)}...${value.slice(-8)}`;
+}
+
+function formatXrp(value) {
+  if (value === null || value === undefined || value === "") return "-";
+  return `${value} XRP`;
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function renderHistory(data) {
+  lastHistory = data;
+  const txs = data.transactions || [];
+  els.historySummary.textContent = `${txs.length} transaction(s) loaded for ${data.address}`;
+
+  if (!txs.length) {
+    els.historyList.innerHTML = '<div class="emptyState">No transactions found for this wallet.</div>';
+    return;
+  }
+
+  els.historyList.innerHTML = txs
+    .map((tx, index) => {
+      const explorer = tx.explorer_url || "#";
+      return `
+        <article class="historyItem">
+          <div class="historyTop">
+            <span class="pill ${tx.direction || "other"}">${tx.direction || "other"}</span>
+            <span class="mono">${shortHash(tx.tx_hash)}</span>
+            <button class="btn mini" data-history-copy="${index}" data-history-field="tx_hash">Copy hash</button>
+          </div>
+          <div class="historyGrid">
+            <div><span>Type</span><strong>${tx.transaction_type || "-"}</strong></div>
+            <div><span>Result</span><strong>${tx.result || "-"}</strong></div>
+            <div><span>Validated</span><strong>${String(!!tx.validated)}</strong></div>
+            <div><span>Amount</span><strong>${formatXrp(tx.amount_xrp)}</strong></div>
+            <div><span>Fee</span><strong>${formatXrp(tx.fee_xrp)}</strong></div>
+            <div><span>Ledger</span><strong>${tx.ledger_index ?? "-"}</strong></div>
+            <div><span>Date</span><strong>${formatDate(tx.date)}</strong></div>
+            <div><span>Memo</span><strong>${tx.memo || "-"}</strong></div>
+          </div>
+          <div class="historyCounterparty">
+            <span>Counterparty</span>
+            <strong class="mono">${tx.counterparty || "-"}</strong>
+          </div>
+          <div class="historyActions">
+            <a href="${explorer}" target="_blank" rel="noreferrer">Open explorer</a>
+            <button class="btn mini" data-history-copy="${index}" data-history-field="explorer_url">Copy explorer</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 async function copyText(text) {
@@ -137,8 +206,10 @@ els.createWalletBtn.addEventListener("click", async () => {
 
     if (data.funded) {
       els.sendSourceSeed.value = data.seed || "";
+      els.historyAddress.value = data.classic_address || "";
     } else {
       els.sendDestAddress.value = data.classic_address || "";
+      els.historyAddress.value = data.classic_address || "";
     }
 
     setRaw(data);
@@ -149,6 +220,31 @@ els.createWalletBtn.addEventListener("click", async () => {
   } finally {
     els.createWalletBtn.disabled = false;
     els.createWalletBtn.textContent = "Create Wallet";
+  }
+});
+
+els.loadHistoryBtn.addEventListener("click", async () => {
+  els.loadHistoryBtn.disabled = true;
+  els.loadHistoryBtn.textContent = "Loading...";
+  try {
+    const address = els.historyAddress.value.trim();
+    const limit = encodeURIComponent(els.historyLimit.value.trim() || "20");
+    const data = await apiFetch(
+      `/ripple/accounts/${encodeURIComponent(address)}/transactions?limit=${limit}`,
+    );
+
+    renderHistory(data);
+    setRaw(data);
+    toast("History loaded");
+  } catch (e) {
+    lastHistory = null;
+    els.historySummary.textContent = "History failed to load.";
+    els.historyList.innerHTML = `<div class="emptyState">${e.message}</div>`;
+    setRaw({ error: e.message });
+    toast(e.message);
+  } finally {
+    els.loadHistoryBtn.disabled = false;
+    els.loadHistoryBtn.textContent = "Load history";
   }
 });
 
@@ -253,6 +349,21 @@ document.addEventListener("click", (e) => {
   const value = getCopyValue(targetId);
   copyText(value);
 });
+
+document.addEventListener("click", (e) => {
+  const btn = e.target?.closest?.("[data-history-copy]");
+  if (!btn || !lastHistory) return;
+  const index = Number(btn.getAttribute("data-history-copy"));
+  const field = btn.getAttribute("data-history-field");
+  const tx = lastHistory.transactions?.[index];
+  copyText(tx?.[field] || "");
+});
+
+if (els.copyHistoryJsonBtn) {
+  els.copyHistoryJsonBtn.addEventListener("click", () => {
+    copyText(lastHistory ? JSON.stringify(lastHistory, null, 2) : "");
+  });
+}
 
 if (els.copyRawBtn) {
   els.copyRawBtn.addEventListener("click", () => copyText(getCopyValue("rawJson")));

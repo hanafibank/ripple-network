@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -27,6 +27,29 @@ class AccountInfoResponse(BaseModel):
     balance_xrp: Optional[Decimal] = None
     sequence: Optional[int] = None
     ledger_index: Optional[int] = None
+    raw: Dict[str, Any]
+
+
+class WalletTransactionEntry(BaseModel):
+    tx_hash: str
+    transaction_type: Optional[str] = None
+    direction: str
+    counterparty: Optional[str] = None
+    amount_xrp: Optional[Decimal] = None
+    fee_xrp: Optional[Decimal] = None
+    result: Optional[str] = None
+    validated: bool
+    ledger_index: Optional[int] = None
+    date: Optional[str] = None
+    memo: Optional[str] = None
+    explorer_url: str
+
+
+class WalletTransactionHistoryResponse(BaseModel):
+    address: str
+    count: int
+    limit: int
+    transactions: List[WalletTransactionEntry]
     raw: Dict[str, Any]
 
 
@@ -66,4 +89,3 @@ class TransactionStatusResponse(BaseModel):
     ledger_index: Optional[int] = None
     explorer_url: str
     raw: Dict[str, Any]
-

@@ -36,6 +36,10 @@
             <span class="navTitle">Check</span>
             <span class="navSub">Tx status</span>
           </button>
+          <button class="navItem" data-page="history" id="navHistory">
+            <span class="navTitle">History</span>
+            <span class="navSub">Wallet activity</span>
+          </button>
           <button class="navItem" data-page="raw" id="navRaw">
             <span class="navTitle">Raw</span>
             <span class="navSub">Copy JSON</span>
@@ -218,6 +222,35 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section class="page" data-page="history">
+          <div class="pageHeader">
+            <h1>Wallet History</h1>
+            <div class="muted">Load recent XRP transactions for any XRPL testnet wallet.</div>
+          </div>
+
+          <div class="card">
+            <div class="twoCol">
+              <label class="field">
+                <span>Wallet address</span>
+                <input id="historyAddress" placeholder="r..." autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Limit</span>
+                <input id="historyLimit" value="20" />
+              </label>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="loadHistoryBtn">Load history</button>
+              <button class="btn" data-copy="historyAddress">Copy address</button>
+              <button class="btn" id="copyHistoryJsonBtn">Copy history JSON</button>
+            </div>
+
+            <div class="historySummary" id="historySummary">No history loaded yet.</div>
+            <div class="historyList" id="historyList"></div>
           </div>
         </section>
 
