@@ -9,6 +9,10 @@ const els = {
   walletPubKey: document.getElementById("walletPubKey"),
   walletFunded: document.getElementById("walletFunded"),
   toggleSeedBtn: document.getElementById("toggleSeedBtn"),
+  useAsSenderBtn: document.getElementById("useAsSenderBtn"),
+  useAsReceiverBtn: document.getElementById("useAsReceiverBtn"),
+  useForDetailsBtn: document.getElementById("useForDetailsBtn"),
+  useForHistoryBtn: document.getElementById("useForHistoryBtn"),
   accountAddress: document.getElementById("accountAddress"),
   loadAccountBtn: document.getElementById("loadAccountBtn"),
   accountDetailAddress: document.getElementById("accountDetailAddress"),
@@ -47,6 +51,7 @@ let seedVisible = false;
 let toastTimer = null;
 let lastHistory = null;
 let lastAccount = null;
+let lastWallet = null;
 
 function setHealth(ok, text) {
   els.healthText.textContent = text;
@@ -206,20 +211,11 @@ els.createWalletBtn.addEventListener("click", async () => {
     });
 
     els.walletAddress.textContent = data.classic_address || "-";
+    lastWallet = data;
     lastSeed = data.seed || null;
     renderSeed();
     els.walletPubKey.textContent = data.public_key || "-";
     els.walletFunded.textContent = String(!!data.funded);
-
-    if (data.funded) {
-      els.sendSourceSeed.value = data.seed || "";
-      els.historyAddress.value = data.classic_address || "";
-      els.accountAddress.value = data.classic_address || "";
-    } else {
-      els.sendDestAddress.value = data.classic_address || "";
-      els.historyAddress.value = data.classic_address || "";
-      els.accountAddress.value = data.classic_address || "";
-    }
 
     setRaw(data);
     toast("Wallet created");
@@ -230,6 +226,44 @@ els.createWalletBtn.addEventListener("click", async () => {
     els.createWalletBtn.disabled = false;
     els.createWalletBtn.textContent = "Create Wallet";
   }
+});
+
+function requireLastWallet() {
+  if (!lastWallet?.classic_address) {
+    toast("Create a wallet first");
+    return null;
+  }
+  return lastWallet;
+}
+
+els.useAsSenderBtn.addEventListener("click", () => {
+  const wallet = requireLastWallet();
+  if (!wallet) return;
+  els.sendSourceSeed.value = wallet.seed || "";
+  toast("Sender seed filled");
+});
+
+els.useAsReceiverBtn.addEventListener("click", () => {
+  const wallet = requireLastWallet();
+  if (!wallet) return;
+  els.sendDestAddress.value = wallet.classic_address || "";
+  toast("Receiver address filled");
+});
+
+els.useForDetailsBtn.addEventListener("click", () => {
+  const wallet = requireLastWallet();
+  if (!wallet) return;
+  els.accountAddress.value = wallet.classic_address || "";
+  setActivePage("details");
+  toast("Details address filled");
+});
+
+els.useForHistoryBtn.addEventListener("click", () => {
+  const wallet = requireLastWallet();
+  if (!wallet) return;
+  els.historyAddress.value = wallet.classic_address || "";
+  setActivePage("history");
+  toast("History address filled");
 });
 
 els.loadAccountBtn.addEventListener("click", async () => {
