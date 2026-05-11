@@ -2,12 +2,14 @@ from decimal import Decimal
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
-from xrpl.clients import JsonRpcClient
+from xrpl.asyncio.clients import AsyncJsonRpcClient
+from xrpl.asyncio.transaction import autofill_and_sign, submit_and_wait
+from xrpl.asyncio.wallet import generate_faucet_wallet
+from xrpl.core.addresscodec import is_valid_classic_address
 from xrpl.models.requests import AccountInfo, AccountTx, Tx
 from xrpl.models.transactions import Memo, Payment
-from xrpl.transaction import autofill_and_sign, submit_and_wait
 from xrpl.utils import drops_to_xrp, hex_to_str, ripple_time_to_datetime, str_to_hex, xrp_to_drops
-from xrpl.wallet import Wallet, generate_faucet_wallet
+from xrpl.wallet import Wallet
 
 from app.core.config import Settings, get_settings
 from app.schemas.ripple import (
@@ -21,14 +23,33 @@ from app.schemas.ripple import (
 )
 
 
+class XrplAccountNotFoundError(Exception):
+    pass
+
+
+class XrplTransactionNotFoundError(Exception):
+    pass
+
+
+class XrplInvalidAddressError(Exception):
+    pass
+
+
+def _require_valid_address(address: str) -> None:
+    if not is_valid_classic_address(address):
+        raise XrplInvalidAddressError(f"'{address}' is not a valid XRPL classic address.")
+
+
 class XrplService:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = JsonRpcClient(settings.xrpl_json_rpc_url)
+        self.client = AsyncJsonRpcClient(settings.xrpl_json_rpc_url)
 
-    def create_wallet(self, fund: bool) -> WalletResponse:
+    async def create_wallet(self, fund: bool) -> WalletResponse:
+        if fund and self.settings.xrpl_network == "mainnet":
+            raise ValueError("Faucet funding is only available on testnet.")
         wallet = (
-            generate_faucet_wallet(
+            await generate_faucet_wallet(
                 self.client,
                 debug=False,
                 usage_context=self.settings.faucet_usage_context,
@@ -42,16 +63,24 @@ class XrplService:
             seed=wallet.seed,
             public_key=wallet.public_key,
             funded=fund,
+            network=self.settings.xrpl_network,
         )
 
-    def get_account_info(self, address: str) -> AccountInfoResponse:
-        response = self.client.request(
+    async def get_account_info(self, address: str) -> AccountInfoResponse:
+        _require_valid_address(address)
+        response = await self.client.request(
             AccountInfo(
                 account=address,
                 ledger_index="validated",
                 strict=True,
             )
         )
+        if not response.is_successful():
+            error = response.result.get("error")
+            if error == "actNotFound":
+                raise XrplAccountNotFoundError(f"Account {address} not found on {self.settings.xrpl_network}.")
+            raise RuntimeError(response.result.get("error_message", "XRPL request failed."))
+
         result = response.result
         account_data = result.get("account_data", {})
         balance_drops = account_data.get("Balance")
@@ -65,8 +94,14 @@ class XrplService:
             raw=result,
         )
 
-    def get_wallet_history(self, address: str, limit: int = 20) -> WalletTransactionHistoryResponse:
-        response = self.client.request(
+    async def get_wallet_history(
+        self,
+        address: str,
+        limit: int = 20,
+        marker: Optional[Any] = None,
+    ) -> WalletTransactionHistoryResponse:
+        _require_valid_address(address)
+        response = await self.client.request(
             AccountTx(
                 account=address,
                 ledger_index_min=-1,
@@ -74,24 +109,30 @@ class XrplService:
                 binary=False,
                 forward=False,
                 limit=limit,
+                marker=marker,
             )
         )
+        if not response.is_successful():
+            error = response.result.get("error")
+            if error == "actNotFound":
+                raise XrplAccountNotFoundError(f"Account {address} not found on {self.settings.xrpl_network}.")
+            raise RuntimeError(response.result.get("error_message", "XRPL request failed."))
+
         result = response.result
         raw_transactions = result.get("transactions", [])
-        entries = [
-            self._build_history_entry(address, item)
-            for item in raw_transactions
-        ]
+        entries = [self._build_history_entry(address, item) for item in raw_transactions]
 
         return WalletTransactionHistoryResponse(
             address=address,
             count=len(entries),
             limit=limit,
+            next_marker=result.get("marker"),
             transactions=entries,
             raw=result,
         )
 
-    def send_xrp(self, payload: SendXrpRequest) -> SendXrpResponse:
+    async def send_xrp(self, payload: SendXrpRequest) -> SendXrpResponse:
+        _require_valid_address(payload.destination_address)
         wallet = Wallet.from_seed(payload.source_seed)
         memo = self._build_memo(payload.memo)
 
@@ -102,8 +143,8 @@ class XrplService:
             memos=[memo] if memo else None,
         )
 
-        signed_payment = autofill_and_sign(payment, self.client, wallet)
-        response = submit_and_wait(signed_payment, self.client)
+        signed_payment = await autofill_and_sign(payment, self.client, wallet)
+        response = await submit_and_wait(signed_payment, self.client)
         result = response.result
         tx_hash = self._extract_hash(result)
 
@@ -116,13 +157,19 @@ class XrplService:
             raw=result,
         )
 
-    def get_transaction_status(self, tx_hash: str) -> TransactionStatusResponse:
-        response = self.client.request(
+    async def get_transaction_status(self, tx_hash: str) -> TransactionStatusResponse:
+        response = await self.client.request(
             Tx(
                 transaction=tx_hash,
                 binary=False,
             )
         )
+        if not response.is_successful():
+            error = response.result.get("error")
+            if error == "txnNotFound":
+                raise XrplTransactionNotFoundError(f"Transaction {tx_hash} not found.")
+            raise RuntimeError(response.result.get("error_message", "XRPL request failed."))
+
         result = response.result
 
         return TransactionStatusResponse(

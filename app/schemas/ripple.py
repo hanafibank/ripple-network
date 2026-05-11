@@ -49,6 +49,7 @@ class WalletTransactionHistoryResponse(BaseModel):
     address: str
     count: int
     limit: int
+    next_marker: Optional[Any] = None
     transactions: List[WalletTransactionEntry]
     raw: Dict[str, Any]
 

@@ -14,7 +14,7 @@ WEB_DIR = Path(__file__).resolve().parent / "web"
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="XRPL testnet API for wallet creation, XRP transfers, and transaction lookup.",
+    description="XRPL API for wallet creation, XRP transfers, and transaction lookup.",
 )
 
 app.add_middleware(
@@ -44,6 +44,6 @@ def health_check():
     return {
         "service": settings.app_name,
         "status": "ok",
-        "network": "XRPL Testnet",
-        "note": "XRPL testnet API is running.",
+        "network": settings.xrpl_network,
+        "rpc_url": settings.xrpl_json_rpc_url,
     }
