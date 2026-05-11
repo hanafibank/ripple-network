@@ -1,44 +1,28 @@
 # HanaFi Ripple Engine Prototype
 
-Small FastAPI service for working with Ripple/XRPL on testnet, with a simple web UI for wallet creation, wallet details, XRP transfer, transaction lookup, and wallet transaction history.
-
-## Purpose
-
-This service provides a minimal Ripple/XRPL codebase that:
-
-- includes a browser-based frontend at `/ui`
-- creates XRPL testnet wallets
-- shows wallet details by address
-- funds testnet wallets from faucet
-- sends XRP from one wallet to another
-- returns transaction hash, ledger result, and explorer URL
-- checks transaction status by hash
-- shows recent wallet transaction history with readable details
+FastAPI service for working with the XRP Ledger on testnet or mainnet, with a simple web UI for wallet creation, wallet details, XRP transfers, transaction lookup, and paginated transaction history.
 
 ## What This Demo Does
 
-- Provides a simple frontend at `/ui` so wallet-to-wallet transfers can be tested without Swagger.
-- Creates XRPL testnet wallets.
-- Shows formatted wallet details, including address, balance, sequence, and ledger index.
-- Optionally funds a testnet wallet from the XRPL faucet.
-- Sends XRP from one testnet wallet to another.
-- Returns the transaction hash, ledger result, and explorer URL.
-- Checks transaction status by hash.
-- Loads recent wallet history, including direction, counterparty, amount, fee, result, ledger, date, memo, and explorer links.
+- Browser-based frontend at `/ui` — no Swagger required for basic testing
+- Creates XRPL wallets (faucet-funded on testnet, keypair-only on mainnet)
+- Shows wallet details: address, balance, sequence, ledger index
+- Sends XRP between wallets with optional on-chain memos
+- Returns transaction hash, ledger result, and XRPL explorer URL
+- Checks transaction status by hash
+- Paginated wallet transaction history with direction, counterparty, amount, fee, result, date, memo, and explorer links
+- Supports testnet and mainnet via a single `XRPL_NETWORK` env var
 
 ## What This Demo Does Not Do
 
-- It does not use real funds.
-- It does not integrate external banking or payout providers.
-- It does not store private keys securely for production.
-- It does not implement RLUSD or issued token trust lines yet.
+- Does not use real funds (testnet only by default)
+- Does not store private keys securely for production
+- Does not integrate external banking or payout providers
+- Does not implement RLUSD or issued token trust lines
 
 ## Why XRP Instead of RLUSD?
 
-The requested prototype focuses on "Ripple's coin" moving from one wallet to
-another. In XRPL terminology, that means XRP. XRP is the native asset of the XRP
-Ledger, so it is the simplest and safest first demo. RLUSD can be added later as
-an issued stablecoin flow, but it requires issuer and trust-line handling.
+XRP is the native asset of the XRP Ledger — the simplest first demo. RLUSD can be added later as an issued stablecoin flow, but requires issuer and trust-line handling.
 
 ## Setup
 
@@ -47,74 +31,108 @@ git clone https://github.com/humblebeeai-academy/hanafi-ripple-engine.git
 cd hanafi-ripple-engine
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
 pip install -e ".[dev]"
 cp .env.example .env
-uvicorn app.main:app --reload --port 8088
+uvicorn app.main:app --reload
 ```
 
-Open the frontend:
+Open the frontend: http://127.0.0.1:8000/ui
 
-```text
-http://127.0.0.1:8088/ui
-```
+API docs (Swagger): http://127.0.0.1:8000/docs
 
-Optional API docs:
-
-```text
-http://127.0.0.1:8088/docs
-```
-
-## API Examples
-
-Create and fund a testnet wallet:
+## Docker
 
 ```bash
-curl -X POST http://127.0.0.1:8088/ripple/wallets \
+docker compose up
+```
+
+## Configuration
+
+Copy `.env.example` to `.env` and set:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `XRPL_NETWORK` | `testnet` | `testnet` or `mainnet` |
+| `XRPL_JSON_RPC_URL` | *(auto)* | Override RPC endpoint |
+| `XRPL_EXPLORER_TX_URL` | *(auto)* | Override explorer URL template |
+| `FAUCET_USAGE_CONTEXT` | `hanafi-ripple-engine-demo` | Label sent to testnet faucet |
+
+RPC URL and explorer URL default automatically based on `XRPL_NETWORK`. Override only if pointing at a custom node.
+
+## API Reference
+
+**Health check**
+```bash
+curl http://localhost:8000/
+```
+
+**Create and fund a testnet wallet**
+```bash
+curl -X POST http://localhost:8000/ripple/wallets \
   -H "Content-Type: application/json" \
   -d '{"fund": true}'
 ```
 
-Create an unfunded testnet wallet:
-
+**Create an unfunded wallet (works on mainnet)**
 ```bash
-curl -X POST http://127.0.0.1:8088/ripple/wallets \
+curl -X POST http://localhost:8000/ripple/wallets \
   -H "Content-Type: application/json" \
   -d '{"fund": false}'
 ```
 
-Send XRP:
-
+**Get account info**
 ```bash
-curl -X POST http://127.0.0.1:8088/ripple/payments/xrp \
+curl http://localhost:8000/ripple/accounts/{address}
+```
+
+**Send XRP**
+```bash
+curl -X POST http://localhost:8000/ripple/payments/xrp \
   -H "Content-Type: application/json" \
   -d '{
     "source_seed": "sn...",
     "destination_address": "r...",
-    "amount_xrp": "1",
-    "memo": "hanafi-demo-transfer"
+    "amount_xrp": "10.50",
+    "memo": "invoice-ORD-0041"
   }'
 ```
 
-Check transaction status:
-
+**Check transaction status**
 ```bash
-curl http://127.0.0.1:8088/ripple/payments/{tx_hash}
+curl http://localhost:8000/ripple/payments/{tx_hash}
 ```
 
-Load wallet transaction history:
-
+**Wallet transaction history**
 ```bash
-curl "http://127.0.0.1:8088/ripple/accounts/{address}/transactions?limit=20"
+# First page
+curl "http://localhost:8000/ripple/accounts/{address}/transactions?limit=10"
+
+# Next page (pass next_marker from previous response)
+curl "http://localhost:8000/ripple/accounts/{address}/transactions?limit=10&marker={next_marker}"
 ```
+
+## Error Codes
+
+| Code | Meaning |
+|------|---------|
+| `422` | Invalid XRPL address format |
+| `404` | Account or transaction not found on the network |
+| `400` | Bad request (e.g. faucet requested on mainnet) |
+| `502` | XRPL network error |
+
+## Live Demo (Testnet)
+
+Merchant wallet with 13 transactions across 3 counterparties:
+- Address: `rKtg7ydmLu2dXrXzKKsvYBAXTJfeUe2erN`
+- Explorer: https://testnet.xrpl.org/accounts/rKtg7ydmLu2dXrXzKKsvYBAXTJfeUe2erN
 
 ## Production Notes
 
-Before any production Ripple/XRPL usage:
+Before any production usage:
 
-- Do not return or store seeds in API responses.
-- Use HSM/MPC/custody or a separate signer service.
-- Add destination allowlists and transaction limits.
-- Store all transactions in a database with idempotency keys.
-- Wait for validated ledger results before marking settlement complete.
-- Add RLUSD only after issuer, trust-line, liquidity, and compliance reviews.
+- Never return or store seeds in API responses — use HSM/MPC or a dedicated signer service
+- Add destination allowlists and per-transaction limits
+- Store all transactions in a database with idempotency keys
+- Wait for `validated: true` in ledger results before marking settlement complete
+- Add auth and rate limiting before exposing publicly
+- Add RLUSD only after issuer, trust-line, liquidity, and compliance reviews
